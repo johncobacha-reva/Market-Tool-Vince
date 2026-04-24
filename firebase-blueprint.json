@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "Deal": {
+      "title": "Real Estate Deal",
+      "description": "A commercial real estate deal being analyzed.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "assetType": { "type": "string", "enum": ["Industrial", "Multifamily", "Retail", "Office", "Land", "Mixed Use", "Specialty"] },
+        "docType": { "type": "string", "enum": ["Listing", "Offering Memorandum", "Market Report"] },
+        "price": { "type": "number" },
+        "capRate": { "type": "number" },
+        "noi": { "type": "number" },
+        "units": { "type": "number" },
+        "squareFootage": { "type": "number" },
+        "yearBuilt": { "type": "number" },
+        "cashOnCashReturn": { "type": "number" },
+        "debtCoverageRatio": { "type": "number" },
+        "loanAssumptions": {
+          "type": "object",
+          "properties": {
+            "ltv": { "type": "number" },
+            "interestRate": { "type": "number" },
+            "amortization": { "type": "number" }
+          }
+        },
+        "confidenceScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["Active", "Under Contract", "Closed", "Passed"] },
+        "hiddenGemScore": { "type": "number" },
+        "dealHeatRating": { "type": "number" },
+        "redFlags": { "type": "array", "items": { "type": "string" } },
+        "valueAddOpportunities": { "type": "array", "items": { "type": "string" } },
+        "summary": { "type": "string" },
+        "analysis": { "type": "string" },
+        "historicalComparison": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "period": { "type": "string" },
+              "analysis": { "type": "string" }
+            }
+          }
+        },
+        "negotiationStrategy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "target": { "type": "string", "enum": ["Seller", "Buyer"] },
+              "doubt": { "type": "string" },
+              "combat": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "assetType", "price", "userId"]
+    },
+    "MarketReport": {
+      "title": "Market Report",
+      "description": "Living market report for the Inland Empire.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "region": { "type": "string" },
+        "avgCapRate": { "type": "number" },
+        "avgRentPerSqFt": { "type": "number" },
+        "vacancyRate": { "type": "number" },
+        "trends": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/deals/{dealId}": {
+      "schema": "Deal",
+      "description": "Collection of CRE deals."
+    },
+    "/marketReports/{reportId}": {
+      "schema": "MarketReport",
+      "description": "Market reports for different IE submarkets."
+    }
+  }
+}

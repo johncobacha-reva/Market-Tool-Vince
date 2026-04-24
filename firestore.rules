@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: deals
+    // Fields:
+    //   - name: string (required, 1-255 chars)
+    //   - address: string (optional)
+    //   - assetType: string (required, enum: Industrial, Multifamily, Retail, Office, Land, Mixed Use, Specialty)
+    //   - docType: string (required, enum: Listing, Offering Memorandum)
+    //   - price: number (required, >= 0)
+    //   - capRate: number (optional)
+    //   - noi: number (optional)
+    //   - units: number (optional)
+    //   - squareFootage: number (optional)
+    //   - yearBuilt: number (optional)
+    //   - status: string (required, enum: Active, Under Contract, Closed, Passed)
+    //   - hiddenGemScore: number (required, 0-100)
+    //   - dealHeatRating: number (required, 0-100)
+    //   - redFlags: list (required)
+    //   - valueAddOpportunities: list (required)
+    //   - summary: string (required)
+    //   - analysis: string (required)
+    //   - historicalComparison: list (required)
+    //   - createdAt: timestamp (required)
+    //   - updatedAt: timestamp (required)
+    //   - userId: string (required, matches auth.uid)
+    //
+    // Collection: marketReports
+    // Fields:
+    //   - region: string (required)
+    //   - avgCapRate: number (optional)
+    //   - avgRentPerSqFt: number (optional)
+    //   - vacancyRate: number (optional)
+    //   - trends: string (optional)
+    //   - updatedAt: timestamp (required)
+    //
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email == "john.cobacha@revaglobalva.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isValidDeal(data) {
+      return data.keys().hasAll([
+        'name', 'assetType', 'docType', 'price', 'status', 
+        'hiddenGemScore', 'dealHeatRating', 'redFlags', 
+        'valueAddOpportunities', 'summary', 'analysis', 
+        'historicalComparison', 'confidenceScore', 'negotiationStrategy',
+        'ownerCriticalQuestions', 'createdAt', 'updatedAt', 'userId'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'name', 'address', 'city', 'assetType', 'docType', 'price', 
+        'capRate', 'noi', 'units', 'squareFootage', 'yearBuilt', 
+        'cashOnCashReturn', 'debtCoverageRatio', 'loanAssumptions',
+        'status', 'hiddenGemScore', 'dealHeatRating', 'redFlags', 
+        'valueAddOpportunities', 'summary', 'analysis', 
+        'historicalComparison', 'confidenceScore', 'negotiationStrategy',
+        'ownerCriticalQuestions', 'createdAt', 'updatedAt', 'userId'
+      ]) &&
+      data.name is string && data.name.size() > 0 && data.name.size() <= 255 &&
+      data.assetType in ['Industrial', 'Multifamily', 'Retail', 'Office', 'Land', 'Mixed Use', 'Specialty'] &&
+      data.docType in ['Listing', 'Offering Memorandum', 'Market Report'] &&
+      data.price is number && data.price >= 0 &&
+      data.status in ['Active', 'Under Contract', 'Closed', 'Passed'] &&
+      data.userId == request.auth.uid &&
+      data.hiddenGemScore is number && data.hiddenGemScore >= 0 && data.hiddenGemScore <= 100 &&
+      data.dealHeatRating is number && data.dealHeatRating >= 0 && data.dealHeatRating <= 100 &&
+      data.confidenceScore is number && data.confidenceScore >= 0 && data.confidenceScore <= 100 &&
+      data.redFlags is list && data.redFlags.size() <= 20 &&
+      data.valueAddOpportunities is list && data.valueAddOpportunities.size() <= 20 &&
+      data.summary is string && data.summary.size() <= 1000 &&
+      data.analysis is string && data.analysis.size() <= 50000 &&
+      data.historicalComparison is list && data.historicalComparison.size() <= 10 &&
+      data.negotiationStrategy is list && data.negotiationStrategy.size() <= 10 &&
+      data.ownerCriticalQuestions is list && data.ownerCriticalQuestions.size() <= 3 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp &&
+      (!('address' in data) || (data.address is string && data.address.size() <= 500)) &&
+      (!('city' in data) || (data.city is string && data.city.size() <= 100)) &&
+      (!('capRate' in data) || data.capRate is number) &&
+      (!('noi' in data) || data.noi is number) &&
+      (!('units' in data) || data.units is number) &&
+      (!('squareFootage' in data) || data.squareFootage is number) &&
+      (!('yearBuilt' in data) || data.yearBuilt is number) &&
+      (!('cashOnCashReturn' in data) || data.cashOnCashReturn is number) &&
+      (!('debtCoverageRatio' in data) || data.debtCoverageRatio is number) &&
+      (!('loanAssumptions' in data) || (
+        data.loanAssumptions is map && 
+        data.loanAssumptions.ltv is number && 
+        data.loanAssumptions.interestRate is number && 
+        data.loanAssumptions.amortization is number
+      ));
+    }
+
+    match /deals/{dealId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if isAuthenticated() && isValidDeal(request.resource.data);
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin()) && 
+                    isValidDeal(request.resource.data) &&
+                    request.resource.data.userId == resource.data.userId &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+    
+    match /marketReports/{reportId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
